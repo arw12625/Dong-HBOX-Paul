@@ -1,2 +1,3 @@
 *.atsln
+.vs/
 DongPaulArdu/ArduinoCore/
