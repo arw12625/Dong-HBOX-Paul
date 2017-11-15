@@ -5,11 +5,13 @@
  */
 package dong;
 
-import comm.BufferReaderCallback;
-import comm.BufferWriter;
 import control.ControlMap;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import message.Messenger;
+import util.BlockInput;
+import util.BlockOutput;
+import util.BlockOutput.BlockOutputCallback;
 
 /**
  *
@@ -18,8 +20,8 @@ import java.nio.ByteBuffer;
 public class SimpleDrive {
 
     private ControlMap cm;
-    private BufferReaderCallback reader;
-    private BufferWriter writer;
+    private Messenger.MessageReceivedCallback reader;
+    private BlockInput writer;
     private ByteBuffer b;
 
     private final static short maxrange = 300;
@@ -27,19 +29,19 @@ public class SimpleDrive {
     public SimpleDrive(ControlMap cm) {
         this.cm = cm;
         b = ByteBuffer.allocate(254);
-        reader = new BufferReaderCallback() {
+        reader = new Messenger.MessageReceivedCallback() {
             @Override
-            public void readBuffer(ByteBuffer msg) {
-                
+            public void onMessageReceived(Messenger messenger, ByteBuffer msg) {
+                System.out.println("Message Received :)");
             }
         };
     }
     
-    public BufferReaderCallback getReader() {
+    public Messenger.MessageReceivedCallback getReader() {
         return reader;
     }
     
-    public void setWriter(BufferWriter writer) {
+    public void setWriter(BlockInput writer) {
         this.writer = writer;
     }
 
@@ -48,11 +50,11 @@ public class SimpleDrive {
             float forward = cm.getValue("FORWARD");
             float turn = cm.getValue("TURN");
             float throttle = (1 + cm.getValue("THROTTLE"))/2;
-            System.out.println("THROT " + throttle);
+            //System.out.println("THROT " + throttle);
             
             short left = (short) (maxrange * throttle * normalize(forward - turn));
             short right = (short) (maxrange * throttle * normalize(forward + turn));
-            System.out.println("LEFT " + left);
+            //System.out.println("LEFT " + left);
             b.clear();
 
             b.put((byte) 'c');
@@ -61,11 +63,7 @@ public class SimpleDrive {
             b.putShort(right);
 
             b.flip();
-            try {
-                writer.write(b);
-            } catch (IOException ex) {
-                System.err.println("Could not send msg");
-            }
+            writer.writeBlock(b);
             b.rewind();
             
             
@@ -85,11 +83,7 @@ public class SimpleDrive {
             b.put(dir);
 
             b.flip();
-            try {
-                writer.write(b);
-            } catch (IOException ex) {
-                System.err.println("Could not send msg");
-            }
+            writer.writeBlock(b);
             b.rewind();
         }
     }
